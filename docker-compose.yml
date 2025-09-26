@@ -8,6 +8,7 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
+      - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=false
     volumes:
       - ./public:/app/public:ro
     restart: unless-stopped

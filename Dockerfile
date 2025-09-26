@@ -1,30 +1,28 @@
-# Use uma imagem Node.js com Puppeteer pré-instalado
-FROM ghcr.io/puppeteer/puppeteer:21.5.2
+# Use a imagem oficial do Puppeteer que já tem tudo configurado
+FROM ghcr.io/puppeteer/puppeteer:22.6.5
+
+# Voltar para root para instalar dependências
+USER root
 
 # Definir o diretório de trabalho
 WORKDIR /app
 
-# Mudar para root temporariamente para instalar dependências
-USER root
-
-# Copiar package.json primeiro para aproveitar o cache do Docker
+# Copiar arquivos de configuração
 COPY package*.json ./
 
-# Ajustar permissões e instalar dependências
-RUN chown -R pptruser:pptruser /app && \
-    npm install --only=production && \
-    npm cache clean --force
+# Instalar dependências
+RUN npm ci --only=production && npm cache clean --force
 
-# Copiar o resto dos arquivos
+# Copiar código da aplicação
 COPY . .
 
-# Ajustar permissões novamente
+# Ajustar permissões para o usuário pptruser
 RUN chown -R pptruser:pptruser /app
 
 # Expor a porta
 EXPOSE 3000
 
-# Voltar para usuário não-root para segurança
+# Voltar para usuário não-root
 USER pptruser
 
 # Comando para iniciar a aplicação
