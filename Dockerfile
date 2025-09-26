@@ -1,29 +1,47 @@
-# Use a imagem oficial do Puppeteer que já tem tudo configurado
-FROM ghcr.io/puppeteer/puppeteer:22.6.5
+# Use Node.js LTS com Alpine (imagem menor e mais segura)
+FROM node:18-alpine
 
-# Voltar para root para instalar dependências
-USER root
+# Instalar dependências do sistema necessárias para Puppeteer
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    freetype-dev \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+    && rm -rf /var/cache/apk/*
 
-# Definir o diretório de trabalho
+# Definir variáveis de ambiente para Puppeteer
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
+# Criar usuário não-root
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
+
+# Definir diretório de trabalho
 WORKDIR /app
 
-# Copiar arquivos de configuração
-COPY package*.json ./
+# Copiar package.json
+COPY package.json ./
 
 # Instalar dependências
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --only=production && npm cache clean --force
 
 # Copiar código da aplicação
 COPY . .
 
-# Ajustar permissões para o usuário pptruser
-RUN chown -R pptruser:pptruser /app
+# Ajustar permissões
+RUN chown -R nextjs:nodejs /app
+USER nextjs
 
-# Expor a porta
+# Expor porta
 EXPOSE 3000
 
-# Voltar para usuário não-root
-USER pptruser
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD node healthcheck.js
 
-# Comando para iniciar a aplicação
+# Comando de inicialização
 CMD ["npm", "start"]

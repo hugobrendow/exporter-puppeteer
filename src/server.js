@@ -19,6 +19,11 @@ app.use(cors({
 app.use("/public", express.static(path.join(__dirname, "../public")));
 app.use(express.json());
 
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
+});
+
 app.post("/api/gerar-pdf", async (req, res) => {
   try {
     const { produtos } = req.body;
