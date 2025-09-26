@@ -6,9 +6,12 @@ import { fileURLToPath } from "url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export async function generatePdf(produtos) {
+  console.log("Iniciando geração de PDF para", produtos.length, "produto(s)");
+  
   // Carrega logo como base64
   const logoPath = path.join(__dirname, "../public/logo.png");
   const logoBase64 = await fs.readFile(logoPath, { encoding: "base64" });
+  console.log("Logo carregado:", logoBase64.length, "bytes");
 
   // Carrega fontes principais
   let fontBase64 = "";
@@ -17,7 +20,7 @@ export async function generatePdf(produtos) {
   try {
     const montserratPath = path.join(__dirname, "../public/fonts/Montserrat-ExtraBold.ttf");
     fontBase64 = await fs.readFile(montserratPath, { encoding: "base64" });
-    console.log("Fonte Montserrat carregada com sucesso");
+    console.log("Fonte Montserrat carregada:", fontBase64.length, "bytes");
   } catch (err) {
     console.warn("Fonte Montserrat não encontrada:", err.message);
   }
@@ -25,7 +28,7 @@ export async function generatePdf(produtos) {
   try {
     const robotoBoldPath = path.join(__dirname, "../public/fonts/Roboto-Bold.ttf");
     boldFontBase64 = await fs.readFile(robotoBoldPath, { encoding: "base64" });
-    console.log("Fonte Roboto Bold carregada com sucesso");
+    console.log("Fonte Roboto Bold carregada:", boldFontBase64.length, "bytes");
   } catch (err) {
     console.warn("Fonte Roboto Bold não encontrada:", err.message);
   }
@@ -38,28 +41,45 @@ export async function generatePdf(produtos) {
   }
 
   const html = await renderHtml(etiquetas, logoBase64, fontBase64, boldFontBase64);
+  console.log("HTML gerado:", html.length, "caracteres");
 
+  console.log("Iniciando Puppeteer...");
   const browser = await puppeteer.launch({
-    headless: "new",
+    headless: true,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
       "--disable-dev-shm-usage",
       "--disable-accelerated-2d-canvas",
       "--no-first-run",
-      "--no-zygote",
-      "--disable-gpu"
+      "--no-zygote", 
+      "--disable-gpu",
+      "--disable-background-timer-throttling",
+      "--disable-backgrounding-occluded-windows",
+      "--disable-renderer-backgrounding",
+      "--disable-features=TranslateUI",
+      "--disable-web-security",
+      "--disable-features=VizDisplayCompositor"
     ],
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
   });
   const page = await browser.newPage();
 
   await page.setContent(html, { waitUntil: "networkidle0" });
+  
+  // Aguarda um pouco mais para garantir que as fontes carreguem
+  await page.waitForTimeout(1000);
+  
   const pdfBuffer = await page.pdf({
     format: "A4",
     margin: { top: "2px", bottom: "2px", left: "2px", right: "2px" },
+    printBackground: true,
+    preferCSSPageSize: false,
   });
 
+  console.log("PDF gerado:", pdfBuffer.length, "bytes");
   await browser.close();
+  console.log("Navegador fechado, retornando PDF");
   return pdfBuffer;
 }
 

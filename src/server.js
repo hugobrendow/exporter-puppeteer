@@ -24,6 +24,32 @@ app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
 });
 
+// Endpoint de teste para PDF
+app.get("/api/teste-pdf", async (req, res) => {
+  try {
+    const produtoTeste = {
+      nome: "Produto de Teste",
+      preco: "19.99",
+      codigo: "TEST123",
+      quantidade: 1
+    };
+    
+    const pdfBuffer = await generatePdf([produtoTeste]);
+    
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": "attachment; filename=teste-etiqueta.pdf",
+      "Content-Length": pdfBuffer.length,
+      "Cache-Control": "no-cache"
+    });
+    
+    res.end(pdfBuffer, 'binary');
+  } catch (err) {
+    console.error("Erro no teste PDF:", err);
+    res.status(500).json({ error: "Erro ao gerar PDF de teste", details: err.message });
+  }
+});
+
 app.post("/api/gerar-pdf", async (req, res) => {
   try {
     const { produtos } = req.body;
@@ -31,11 +57,15 @@ app.post("/api/gerar-pdf", async (req, res) => {
       return res.status(400).json({ error: "Produtos são obrigatórios" });
     }
     const pdfBuffer = await generatePdf(produtos);
+    
     res.set({
       "Content-Type": "application/pdf",
-      "Content-Disposition": "attachment; filename=etiquetas-gondola.pdf"
+      "Content-Disposition": "attachment; filename=etiquetas-gondola.pdf",
+      "Content-Length": pdfBuffer.length,
+      "Cache-Control": "no-cache"
     });
-    res.send(pdfBuffer);
+    
+    res.end(pdfBuffer, 'binary');
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Erro ao gerar PDF" });
