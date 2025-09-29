@@ -67,8 +67,8 @@ export async function generatePdf(produtos) {
 
   await page.setContent(html, { waitUntil: "networkidle0" });
   
-  // Aguarda um pouco mais para garantir que as fontes carreguem
-  await page.waitForTimeout(1000);
+  // Aguarda que as fontes estejam carregadas
+  await page.evaluateHandle('document.fonts.ready');
   
   const pdfBuffer = await page.pdf({
     format: "A4",
